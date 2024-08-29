@@ -14,20 +14,18 @@ class FinanceApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Personal Finance Management System")
-        self.geometry("1300x800")  # Adjusted size for more space
+        self.geometry("1300x800")
 
-        # Set new theme colors
-        self.bg_color = "#e8f5e9"
-        self.fg_color = "#004d40"
-        self.button_color = "#009688"
-        self.entry_bg_color = "#ffffff"
-        self.entry_fg_color = "#004d40"
-        self.highlight_color = "#ff5722"
-
+        # Modern UI colors
+        self.bg_color = "#f7f9fc"
+        self.primary_color = "#3498db"
+        self.secondary_color = "#2ecc71"
+        self.accent_color = "#e74c3c"
+        self.text_color = "#34495e"
+        self.light_bg = "#ecf0f1"
+        self.entry_color = "#ffffff"
+        self.editing_transaction_id = None  # Track if a transaction is being edited
         self.configure(bg=self.bg_color)
-
-        # Initialize bank balance
-        self.bank_balance = 1000000.00
 
         # Create SQLite database
         self.conn = sqlite3.connect('finance.db')
@@ -36,312 +34,115 @@ class FinanceApp(tk.Tk):
                               (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, amount REAL, date TEXT, description TEXT)''')
         self.conn.commit()
 
-        # Create main frame
+        # Main frame
         main_frame = tk.Frame(self, bg=self.bg_color)
-        main_frame.pack(fill='both', expand=True)
+        main_frame.pack(fill='both', expand=True, padx=10, pady=10)
 
-        # Create notebook
-        self.notebook = ttk.Notebook(main_frame)
+        # Notebook for tabs
+        self.notebook = ttk.Notebook(main_frame, style='Modern.TNotebook')
         self.notebook.pack(fill='both', expand=True)
 
-        # Apply style to the notebook and tabs
+        # Style for notebook and other widgets
         style = ttk.Style()
-        style.theme_use("clam")
-        style.configure("TNotebook", background=self.bg_color,
-                        foreground=self.fg_color)
-        style.map("TNotebook.Tab", background=[
-                  ("selected", self.highlight_color)], foreground=[("selected", self.fg_color)])
+        style.theme_use('clam')
+        style.configure('Modern.TNotebook',
+                        background=self.bg_color, tabmargins=[2, 5, 2, 0])
+        style.configure('Modern.TNotebook.Tab', padding=[
+                        15, 15], background=self.primary_color, foreground=self.bg_color, font=('Helvetica', 18, 'bold'))  # Larger tabs
+        style.map('Modern.TNotebook.Tab', background=[
+                  ('selected', self.accent_color)], foreground=[('selected', self.bg_color)])
 
-        # Apply style to Treeview
-        style.configure('Treeview',
-                        font=('Arial', 12),  # Changed font type and size
-                        rowheight=30)  # Increase row height for better visibility
+        style.configure('TLabel', font=('Helvetica', 16), background=self.bg_color,
+                        foreground=self.text_color)  # Increased font size for labels
+        style.configure('TButton', font=('Helvetica', 16), background=self.primary_color,
+                        foreground=self.bg_color)  # Increased font size for buttons
+        # Increased font size for entries
+        style.configure('TEntry', font=('Helvetica', 16),
+                        fieldbackground=self.entry_color)
 
-        # Apply style to Combobox
-        style.configure('TCombobox',
-                        font=('Arial', 14))  # Changed font size for Combobox
+        # Increase font size for Treeview (Table)
+        style.configure("Treeview", font=('Helvetica', 16), rowheight=30)
+        style.configure("Treeview.Heading", font=(
+            'Helvetica', 18, 'bold'))  # Set font for table headers
 
-        # Create transaction tab
+        # Transaction Tab
         transaction_tab = tk.Frame(self.notebook, bg=self.bg_color)
         self.notebook.add(transaction_tab, text='Transactions')
 
-        # Create transaction widgets
-        self.create_label(transaction_tab, 'Type:', 0, 0)
+        # Center the form and table
+        form_frame = tk.Frame(transaction_tab, bg=self.bg_color)
+        form_frame.grid(row=0, column=0, padx=20, pady=20, sticky='nsew')
+
+        # Transaction Widgets (Modernized)
+        self.create_label(form_frame, "Transaction Type:", 0, 0)
         self.type_var = tk.StringVar()
-        self.type_dropdown = ttk.Combobox(transaction_tab, textvariable=self.type_var, values=[
-                                          'Income', 'Expense'], font=('Arial', 14))
-        self.type_dropdown.grid(
-            row=0, column=1, columnspan=2, padx=10, pady=10, sticky='ew')
+        self.type_dropdown = ttk.Combobox(form_frame, textvariable=self.type_var, values=[
+                                          'Income', 'Expense'], font=('Helvetica', 16))
+        self.type_dropdown.grid(row=0, column=1, columnspan=2,
+                                padx=20, pady=20, sticky='ew')  # Increased padding
 
-        self.create_label(transaction_tab, 'Amount:', 1, 0)
+        self.create_label(form_frame, "Amount:", 1, 0)
         self.amount_entry = self.create_entry(
-            transaction_tab, 1, 1, columnspan=2)
+            form_frame, 1, 1, columnspan=2)
 
-        self.create_label(transaction_tab, 'Date:', 2, 0)
-        self.date_entry = DateEntry(transaction_tab, font=(
-            'Arial', 14), date_pattern='dd-mm-yyyy')
-        self.date_entry.grid(row=2, column=1, padx=10, pady=10, columnspan=2)
+        self.create_label(form_frame, "Date:", 2, 0)
+        self.date_entry = DateEntry(form_frame, font=(
+            'Helvetica', 16), date_pattern='dd-mm-yyyy', background=self.light_bg, foreground=self.text_color)
+        self.date_entry.grid(row=2, column=1, columnspan=2, padx=20, pady=20)
 
-        self.create_label(transaction_tab, 'Description:', 3, 0)
+        self.create_label(form_frame, "Description:", 3, 0)
         self.description_entry = self.create_entry(
-            transaction_tab, 3, 1, columnspan=2)
+            form_frame, 3, 1, columnspan=2)
 
-        # Create bank balance widgets
-        self.create_label(transaction_tab, 'Bank Balance:', 4, 0)
-        self.bank_balance_entry = self.create_entry(
-            transaction_tab, 4, 1, columnspan=2)
+        # Add transaction buttons with flat style
+        button_frame = tk.Frame(transaction_tab, bg=self.bg_color)
+        button_frame.grid(row=4, column=0, columnspan=3,
+                          padx=20, pady=20, sticky='ew')
 
-        update_balance_button = self.create_button(
-            transaction_tab, 'Set Balance', self.set_bank_balance, 5, 0, columnspan=2)
-
-        # Create transaction buttons
         add_button = self.create_button(
-            transaction_tab, 'Add', self.add_transaction, 6, 0)
+            button_frame, "Add", self.add_transaction, 0, 0)
         edit_button = self.create_button(
-            transaction_tab, 'Edit', self.edit_transaction, 6, 1)
+            button_frame, "Edit", self.edit_transaction, 0, 1)
         delete_button = self.create_button(
-            transaction_tab, 'Delete', self.delete_transaction, 6, 2)
+            button_frame, "Delete", self.delete_transaction, 0, 2)
 
-        # Create Treeview to display transactions
+        # Treeview (Modernized) with increased font size
         self.tree = ttk.Treeview(transaction_tab, columns=(
-            'ID', 'Type', 'Amount', 'Date', 'Description'), show='headings', height=12)  # Increased height
+            'ID', 'Type', 'Amount', 'Date', 'Description'), show='headings', height=12)
         self.tree.heading('ID', text='ID')
         self.tree.heading('Type', text='Type')
         self.tree.heading('Amount', text='Amount')
         self.tree.heading('Date', text='Date')
         self.tree.heading('Description', text='Description')
-        self.tree.grid(row=7, column=0, columnspan=4,
-                       padx=10, pady=10, sticky='nsew')
+        self.tree.grid(row=5, column=0, columnspan=3, padx=20,
+                       pady=20, sticky='nsew')  # Increased padding
 
-        # Add scrollbar
+        # Scrollbar
         scrollbar = ttk.Scrollbar(
             transaction_tab, orient='vertical', command=self.tree.yview)
-        scrollbar.grid(row=7, column=4, sticky='ns')
+        scrollbar.grid(row=5, column=3, sticky='ns')
         self.tree.configure(yscroll=scrollbar.set)
 
-        # Create dashboard tab
+        # Dashboard Tab
         dashboard_tab = tk.Frame(self.notebook, bg=self.bg_color)
         self.notebook.add(dashboard_tab, text='Dashboard')
 
-        # Create dashboard widgets
-        self.figure, ((self.ax1, self.ax2), (self.ax3, self.ax4)
-                      ) = plt.subplots(2, 2, figsize=(16, 12))  # Adjusted size for more space
+        # Dashboard Widgets
+        self.figure, (self.ax1, self.ax2) = plt.subplots(1, 2, figsize=(16, 8))
         self.canvas = FigureCanvasTkAgg(self.figure, master=dashboard_tab)
         self.canvas.draw()
-        self.canvas.get_tk_widget().pack(side='top', fill='both', expand=True)
+        self.canvas.get_tk_widget().pack(fill='both', expand=True)
 
-        # Create label for total balance
-        self.balance_label = tk.Label(dashboard_tab, text=f'Total Balance: ${self.bank_balance:.2f}', font=('Arial', 22, 'bold'),
-                                      bg=self.bg_color, fg=self.fg_color)
-        self.balance_label.pack(pady=10)
+        # Balance Label
+        self.balance_label = tk.Label(dashboard_tab, text="Total Balance: $0.00", font=(
+            'Helvetica', 24, 'bold'), bg=self.bg_color, fg=self.text_color)
+        self.balance_label.pack(pady=30)
 
-        self.update_dashboard()
+        # Now you can safely call update_treeview
         self.update_treeview()
 
-    def create_label(self, parent, text, row, column):
-        label = tk.Label(parent, text=text, font=(
-            'Arial', 14, 'bold'), bg=self.bg_color, fg=self.fg_color)
-        label.grid(row=row, column=column, padx=10, pady=10, sticky='w')
-        return label
-
-    def create_entry(self, parent, row, column, columnspan=1):
-        entry = tk.Entry(parent, bg=self.entry_bg_color,
-                         fg=self.entry_fg_color, font=('Arial', 14))
-        entry.grid(row=row, column=column, columnspan=columnspan,
-                   padx=10, pady=10, sticky='ew')
-        return entry
-
-    def create_button(self, parent, text, command, row, column, columnspan=1):
-        button = tk.Button(parent, text=text, command=command, bg=self.button_color, fg=self.fg_color,
-                           activebackground=self.highlight_color, font=('Arial', 14, 'bold'))
-        button.grid(row=row, column=column, columnspan=columnspan,
-                    padx=10, pady=10, sticky='ew')
-        return button
-
-    def set_bank_balance(self):
-        bank_balance_str = self.bank_balance_entry.get()
-
-        # Validate bank balance input
-        try:
-            self.bank_balance = float(bank_balance_str)
-            self.balance_label.config(
-                text=f'Total Balance: ${self.bank_balance:.2f}')
-            messagebox.showinfo("Success", "Bank balance set successfully!")
-        except ValueError:
-            messagebox.showerror(
-                "Input Error", "Please enter a valid bank balance.")
-
-    def add_transaction(self):
-        transaction_type = self.type_var.get()
-        amount_str = self.amount_entry.get()
-        date = self.date_entry.get_date().strftime(
-            '%d-%m-%Y')
-        description = self.description_entry.get()
-
-        # Validate amount input
-        try:
-            amount = float(amount_str)
-        except ValueError:
-            messagebox.showerror("Input Error", "Please enter a valid amount.")
-            return
-
-        # Update bank balance based on expense
-        if transaction_type == 'Expense':
-            self.bank_balance -= amount
-
-        # Insert the transaction into the database
-        self.cursor.execute("INSERT INTO transactions (type, amount, date, description) VALUES (?, ?, ?, ?)",
-                            (transaction_type, amount, date, description))
-        self.conn.commit()
-
-        messagebox.showinfo("Success", "Transaction added successfully!")
-        self.clear_entries()
+        # Initialize the dashboard
         self.update_dashboard()
-        self.update_treeview()
-
-    def clean_amount_string(amount_str):
-        # Remove any unwanted characters
-        return ''.join(c for c in amount_str if c.isdigit() or c == '.')
-
-    def edit_transaction(self):
-        selected = self.tree.focus()
-        if selected:
-            transaction_id = self.tree.item(selected)['values'][0]
-            transaction_type = self.type_var.get()
-            amount_str = self.amount_entry.get().strip()  # Strip whitespace
-            date = self.date_entry.get_date().strftime('%d-%m-%Y')
-            description = self.description_entry.get()
-
-            print(f"Amount entered: '{amount_str}'")  # Debugging statement
-
-            if not amount_str:  # This condition should trigger only if amount_str is truly empty
-                messagebox.showerror("Input Error", "Amount cannot be empty.")
-                return
-
-            try:
-                amount = float(amount_str)
-            except ValueError:
-                messagebox.showerror(
-                    "Input Error", "Please enter a valid amount.")
-                return
-
-            self.cursor.execute(
-                "SELECT amount, type FROM transactions WHERE id = ?", (transaction_id,))
-            old_amount, old_type = self.cursor.fetchone()
-
-            if old_type == 'Expense':
-                self.bank_balance += old_amount
-            if transaction_type == 'Expense':
-                self.bank_balance -= amount
-
-            self.cursor.execute(
-                "UPDATE transactions SET type = ?, amount = ?, date = ?, description = ? WHERE id = ?",
-                (transaction_type, amount, date, description, transaction_id))
-            self.conn.commit()
-
-            messagebox.showinfo("Success", "Transaction updated successfully!")
-            self.clear_entries()
-            self.update_dashboard()
-            self.update_treeview()
-        else:
-            messagebox.showerror(
-                "Error", "Please select a transaction to edit.")
-
-    def delete_transaction(self):
-        selected = self.tree.focus()
-        if selected:
-            transaction_id = self.tree.item(selected)['values'][0]
-
-            # Adjust bank balance
-            self.cursor.execute(
-                "SELECT amount, type FROM transactions WHERE id = ?", (transaction_id,))
-            transaction = self.cursor.fetchone()
-            if transaction:
-                amount, transaction_type = transaction
-
-                # Adjust bank balance if the transaction is an expense
-                if transaction_type == 'Expense':
-                    self.bank_balance += amount
-
-            # Delete the transaction from the database
-            self.cursor.execute(
-                "DELETE FROM transactions WHERE id = ?", (transaction_id,))
-            self.conn.commit()
-
-            messagebox.showinfo("Success", "Transaction deleted successfully!")
-            self.update_dashboard()
-            self.update_treeview()
-        else:
-            messagebox.showerror(
-                "Error", "Please select a transaction to delete.")
-
-    def clear_entries(self):
-        self.type_dropdown.set('')
-        self.amount_entry.delete(0, tk.END)
-        self.date_entry.set_date(datetime.now())
-        self.description_entry.delete(0, tk.END)
-
-    def update_dashboard(self):
-        # Clear previous plots
-        self.ax1.clear()
-        self.ax2.clear()
-        self.ax3.clear()
-        self.ax4.clear()
-
-        # Apply new font for graphs
-        plt.rcParams.update({'font.family': 'DejaVu Sans', 'font.size': 14})
-
-        # Fetch transactions from the database
-        self.cursor.execute("SELECT type, amount, date FROM transactions")
-        transactions = self.cursor.fetchall()
-
-        # Calculate total income and expense
-        income = sum(amount for ttype, amount,
-                     date in transactions if ttype == 'Income')
-        expense = sum(amount for ttype, amount,
-                      date in transactions if ttype == 'Expense')
-
-        # Set a fallback for empty transactions to prevent NaN issues
-        if income == 0 and expense == 0:
-            amounts = [1]  # Default value to avoid division by zero
-            labels = ["No data available"]
-            colors = ['gray']
-        else:
-            amounts = [income, expense]
-            labels = ['Income', 'Expense']
-            colors = ['green', 'red']
-
-        # Plot income vs expense pie chart
-        self.ax1.pie(amounts, labels=labels, autopct='%1.1f%%',
-                     colors=colors, startangle=90)
-        self.ax1.set_title('Income vs Expense')
-
-        # Remove the bank balance bar chart
-        self.ax2.axis('off')  # Hide the axis for the bank balance plot
-
-        # Remove income and expense trend over time
-        self.ax3.axis('off')  # Hide the axis for the income and expense trend
-
-        # Plot category-wise expense distribution as a bar chart
-        categories = {}
-        for ttype, amount, desc in transactions:
-            if ttype == 'Expense':
-                category = desc if desc else 'Uncategorized'
-                categories[category] = categories.get(category, 0) + amount
-
-        if categories:
-            self.ax4.bar(categories.keys(),
-                         categories.values(), color='orange')
-            self.ax4.set_title('Category-wise Expense Distribution')
-            self.ax4.set_xticklabels(
-                categories.keys(), rotation=45, ha='right')
-
-        # Update the canvas
-        self.canvas.draw()
-
-        # Update the balance label
-        self.balance_label.config(
-            text=f'Total Balance: ${self.bank_balance:.2f}')
 
     def update_treeview(self):
         # Clear the treeview
@@ -349,18 +150,199 @@ class FinanceApp(tk.Tk):
             self.tree.delete(item)
 
         # Fetch transactions from the database
-        self.cursor.execute("SELECT * FROM transactions")
+        self.cursor.execute("SELECT * FROM transactions ORDER BY id")
         transactions = self.cursor.fetchall()
 
         # Insert transactions into the treeview
         for transaction in transactions:
             self.tree.insert('', 'end', values=transaction)
 
-    def run(self):
-        self.mainloop()
+    def create_label(self, parent, text, row, column):
+        label = ttk.Label(parent, text=text)
+        label.grid(row=row, column=column, padx=20,
+                   pady=20, sticky='w')  # Increased padding
+        return label
+
+    def create_entry(self, parent, row, column, columnspan=1):
+        entry = ttk.Entry(parent)
+        entry.grid(row=row, column=column, columnspan=columnspan,
+                   padx=20, pady=20, sticky='ew')  # Increased padding
+        return entry
+
+    def create_button(self, parent, text, command, row, column, columnspan=1):
+        button = ttk.Button(parent, text=text,
+                            command=command, style='TButton')
+        button.grid(row=row, column=column, columnspan=columnspan,
+                    padx=20, pady=20, sticky='ew')  # Increased padding
+        return button
+
+    def add_transaction(self):
+        transaction_type = self.type_var.get()
+        amount_str = self.amount_entry.get()
+        date = self.date_entry.get_date().strftime('%d-%m-%Y')
+        description = self.description_entry.get()
+
+        try:
+            amount = float(amount_str)
+        except ValueError:
+            messagebox.showerror("Input Error", "Please enter a valid amount.")
+            return
+
+        if self.editing_transaction_id:  # If editing a transaction
+            try:
+                # Update the existing transaction
+                self.cursor.execute("UPDATE transactions SET type = ?, amount = ?, date = ?, description = ? WHERE id = ?",
+                                    (transaction_type, amount, date, description, self.editing_transaction_id))
+                self.conn.commit()
+                messagebox.showinfo(
+                    "Success", "Transaction updated successfully!")
+            except Exception as e:
+                messagebox.showerror(
+                    "Database Error", f"Failed to update transaction: {e}")
+        else:
+            # Add a new transaction
+            self.cursor.execute("INSERT INTO transactions (type, amount, date, description) VALUES (?, ?, ?, ?)",
+                                (transaction_type, amount, date, description))
+            self.conn.commit()
+            messagebox.showinfo("Success", "Transaction added successfully!")
+
+        # Clear the editing state
+        self.editing_transaction_id = None
+
+        # Clear the input fields
+        self.clear_entries()
+
+        # Update the treeview and dashboard
+        self.update_treeview()
+        self.update_dashboard()
+
+    def edit_transaction(self):
+        selected = self.tree.focus()  # Get the currently selected item in the treeview
+        if not selected:
+            messagebox.showerror(
+                "Error", "Please select a transaction to edit.")
+            return
+
+        # Get the selected transaction's ID and details
+        transaction_details = self.tree.item(selected)['values']
+        # Store the transaction ID
+        self.editing_transaction_id = transaction_details[0]
+
+        # Populate the input fields with the selected transaction's details
+        self.type_var.set(transaction_details[1])
+        self.amount_entry.delete(0, tk.END)
+        self.amount_entry.insert(0, transaction_details[2])
+        self.date_entry.set_date(datetime.strptime(
+            transaction_details[3], '%d-%m-%Y'))
+        self.description_entry.delete(0, tk.END)
+        self.description_entry.insert(0, transaction_details[4])
+
+        messagebox.showinfo(
+            "Info", "Transaction details loaded. Make changes and click 'Add' to save.")
+
+    def delete_transaction(self):
+        selected = self.tree.focus()
+        if not selected:
+            messagebox.showerror(
+                "Error", "Please select a transaction to delete.")
+            return
+
+        # Get the selected transaction's ID
+        transaction_id = self.tree.item(selected)['values'][0]
+
+        if not transaction_id:
+            messagebox.showerror("Error", "Unable to retrieve transaction ID.")
+            return
+
+        # Delete the transaction from the database
+        self.cursor.execute(
+            "DELETE FROM transactions WHERE id = ?", (transaction_id,))
+        self.conn.commit()
+
+        # Verify deletion
+        self.cursor.execute(
+            "SELECT * FROM transactions WHERE id = ?", (transaction_id,))
+        result = self.cursor.fetchone()
+        if result:
+            messagebox.showerror("Error", "Failed to delete the transaction.")
+        else:
+            messagebox.showinfo("Success", "Transaction deleted successfully!")
+            self.update_treeview()
+            self.update_dashboard()
+
+    def clear_entries(self):
+        self.type_var.set('')
+        self.amount_entry.delete(0, tk.END)
+        self.date_entry.set_date(datetime.now())
+        self.description_entry.delete(0, tk.END)
+
+    def update_dashboard(self):
+        self.ax1.clear()
+        self.ax2.clear()
+
+        transactions = self.cursor.execute(
+            "SELECT type, amount FROM transactions").fetchall()
+        income = sum(amount for ttype,
+                     amount in transactions if ttype == 'Income')
+        expense = sum(amount for ttype,
+                      amount in transactions if ttype == 'Expense')
+
+        balance = income - expense
+        self.balance_label.config(text=f"Total Balance: ${balance:.2f}")
+
+        if income > 0 or expense > 0:
+            labels = []
+            sizes = []
+            colors = []
+
+            if income > 0:
+                labels.append('Income')
+                sizes.append(income)
+                colors.append(self.secondary_color)
+
+            if expense > 0:
+                labels.append('Expense')
+                sizes.append(expense)
+                colors.append(self.accent_color)
+
+            if sizes:
+                self.ax1.pie(sizes, labels=labels, colors=colors,
+                             autopct='%1.1f%%', startangle=90)
+                self.ax1.set_title("Income vs Expense")
+        else:
+            self.ax1.text(0.5, 0.5, 'No Data Available', horizontalalignment='center',
+                          verticalalignment='center', transform=self.ax1.transAxes, fontsize=24, color=self.text_color)
+
+        # Cash Flow Over Time
+        transactions = self.cursor.execute(
+            "SELECT type, amount, date FROM transactions ORDER BY date").fetchall()
+
+        income_dates = [datetime.strptime(
+            date, '%d-%m-%Y') for ttype, amount, date in transactions if ttype == 'Income']
+        income_amounts = [amount for ttype, amount,
+                          date in transactions if ttype == 'Income']
+
+        expense_dates = [datetime.strptime(
+            date, '%d-%m-%Y') for ttype, amount, date in transactions if ttype == 'Expense']
+        expense_amounts = [amount for ttype, amount,
+                           date in transactions if ttype == 'Expense']
+
+        if income_dates or expense_dates:
+            self.ax2.plot(income_dates, income_amounts, marker='o',
+                          linestyle='-', color=self.secondary_color, label='Income')
+            self.ax2.plot(expense_dates, expense_amounts, marker='o',
+                          linestyle='-', color=self.accent_color, label='Expense')
+            self.ax2.set_title("Cash Flow Over Time")
+            self.ax2.set_ylabel("Amount ($)")
+            self.ax2.set_xlabel("Date")
+            self.ax2.legend()
+        else:
+            self.ax2.text(0.5, 0.5, 'No Data Available', horizontalalignment='center',
+                          verticalalignment='center', transform=self.ax2.transAxes, fontsize=24, color=self.text_color)
+
+        self.canvas.draw()
 
 
-# Create and run the finance app
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = FinanceApp()
-    app.run()
+    app.mainloop()
